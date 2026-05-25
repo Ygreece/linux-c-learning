@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Linux File Server Admin</title>
+    <style>
+        body { font-family: monospace; background: #1a1a2e; color: #eee; padding: 20px; }
+        .card { background: #16213e; border-radius: 8px; padding: 16px; margin: 10px 0; }
+        h1 { color: #0f3460; }
+        .stat { display: inline-block; margin: 10px 20px; }
+        .stat-num { font-size: 2em; color: #e94560; }
+        table { width: 100%; border-collapse: collapse; }
+        td, th { padding: 8px; border-bottom: 1px solid #333; text-align: left; }
+        .refresh { background: #e94560; color: white; border: none; padding: 8px 16px; cursor: pointer; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>Linux File Server v2.0.0</h1>
+    <button class="refresh" onclick="refresh()">Refresh</button>
+
+    <div class="card">
+        <h2>Statistics</h2>
+        <div class="stat"><div class="stat-num" id="clients">-</div><div>Clients</div></div>
+        <div class="stat"><div class="stat-num" id="requests">-</div><div>Requests</div></div>
+        <div class="stat"><div class="stat-num" id="sent">-</div><div>Bytes Sent</div></div>
+        <div class="stat"><div class="stat-num" id="recv">-</div><div>Bytes Recv</div></div>
+    </div>
+
+    <div class="card">
+        <h2>Files</h2>
+        <table>
+            <thead><tr><th>Name</th><th>Size</th></tr></thead>
+            <tbody id="file-list"></tbody>
+        </table>
+    </div>
+
+    <script>
+        function refresh() {
+            fetch('/api/stats').then(r=>r.json()).then(d => {
+                document.getElementById('clients').textContent = d.client_count || 0;
+                document.getElementById('requests').textContent = d.total_requests || 0;
+                document.getElementById('sent').textContent = formatBytes(d.total_bytes_sent || 0);
+                document.getElementById('recv').textContent = formatBytes(d.total_bytes_recv || 0);
+            });
+            fetch('/api/files').then(r=>r.json()).then(d => {
+                let html = '';
+                (d.files||[]).forEach(f => {
+                    html += '<tr><td>'+f.name+'</td><td>'+formatBytes(f.size)+'</td></tr>';
+                });
+                document.getElementById('file-list').innerHTML = html || '<tr><td colspan="2">No files</td></tr>';
+            });
+        }
+        function formatBytes(b) {
+            if(b<1024) return b+'B';
+            if(b<1048576) return (b/1024).toFixed(1)+'KB';
+            return (b/1048576).toFixed(1)+'MB';
+        }
+        refresh();
+        setInterval(refresh, 5000);
+    </script>
+</body>
+</html>
